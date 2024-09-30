@@ -1,7 +1,4 @@
 defmodule InputMock do
-  
-  import ExUnit.Assertions, only: [assert: 1]
-  
   def input_file(:valid) do
     """
     BASED: SVQ
