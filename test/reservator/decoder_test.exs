@@ -58,10 +58,16 @@ defmodule DecoderTest do
   # Tests
 
   describe "when valid file" do
-    test "file is read", %{file_path: path, file_content: file_content} do
+    test "file is deserialized", %{file_path: path} do
       assert {:ok, content} = Decoder.decode_file(path)
-      assert content == file_content
-      assert 1 == 2
+      assert length(content) == 9
+    end
+  end
+
+  describe "when invalid file" do
+    @tag type: :invalid
+    test "file is not deserialized", %{file_path: path} do
+      assert {:error, :deserialization_failed} = Decoder.decode_file(path)
     end
   end
 end
