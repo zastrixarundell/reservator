@@ -9,8 +9,8 @@ defmodule Reservator.Decoder do
 
   def decode_file(file_path) when is_bitstring(file_path) do
     with {:ok, binary} <- read_file(file_path),
-         {:ok, segments} <- deserialize(binary) do
-      {:ok, segments}
+         {:ok, start_location, segments} <- deserialize(binary) do
+      {:ok, start_location, segments}
     else
       {:error, err} ->
         {:error, err}
@@ -18,10 +18,11 @@ defmodule Reservator.Decoder do
   end
 
   defp deserialize(content) do
-    with [_match, _start_location] <- Regex.run(~r/BASED: (.*?)$/m, content),
+    with [_match, start_location] <- Regex.run(~r/BASED: (.*?)$/m, content),
          {:ok, segments} <- Segment.deserialize_segment(content) do
+      Logger.debug("Scanned starting location as: #{inspect(start_location)}")
       Logger.debug("Scanned #{length(segments)} elements.")
-      {:ok, segments}
+      {:ok, start_location, segments}
     else
       _ ->
         {:error, :deserialization_failed}

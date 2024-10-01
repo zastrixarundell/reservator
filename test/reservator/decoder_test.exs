@@ -59,8 +59,14 @@ defmodule DecoderTest do
 
   describe "when valid file" do
     test "file is deserialized", %{file_path: path} do
-      assert {:ok, content} = Decoder.decode_file(path)
+      {:ok, start_location, content} = Decoder.decode_file(path)
+
+      assert start_location == "SVQ"
+
       assert length(content) == 9
+
+      assert content |> Enum.at(0) |> Map.get(:segment_type) == "Flight"
+      assert content |> Enum.at(8) |> Map.get(:end_location) == "BOS"
     end
   end
 
