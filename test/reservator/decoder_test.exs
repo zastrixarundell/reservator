@@ -43,7 +43,7 @@ defmodule DecoderTest do
     
     with :ok <- File.mkdir_p(context_path),
          # Why invent hot water / a complex setup, just use UNIX's mktemp
-         {path, 0} <- System.cmd("mktemp", ["#{context_path}/input_file.txt.XXXXXXXXXX"]),
+         {path, 0} <- System.cmd("mktemp", ["#{context_path}/input.txt.XXXXXXXXXX"]),
          path <- String.trim(path) do
       {:ok, path}
     else
@@ -61,7 +61,7 @@ defmodule DecoderTest do
     test "file is read", %{file_path: path, file_content: file_content} do
       assert {:ok, content} = Decoder.decode_file(path)
       assert content == file_content
+      assert 1 == 2
     end
   end
-  
 end
