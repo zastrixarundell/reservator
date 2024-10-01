@@ -18,7 +18,7 @@ defmodule Reservator.Decoder do
   end
 
   defp deserialize(content) do
-    with [_match, start_location] <- Regex.run(~r/BASED: (.*?)$/m, content),
+    with [_match, start_location] <- Regex.run(~r/BASED: (\w{3})$/m, content),
          {:ok, segments} <- Segment.deserialize_segment(content) do
       Logger.debug("Scanned starting location as: #{inspect(start_location)}")
       Logger.debug("Scanned #{length(segments)} elements.")

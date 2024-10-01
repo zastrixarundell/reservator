@@ -71,7 +71,7 @@ defmodule Reservator.Reservation.Segment do
 
     data =
       Regex.scan(
-        ~r/(\w+) (\w+) (\d+-\d+-\d+) (\d+:\d+) -> (\w+) ()(\d+:\d+)|(\w+) (\w+) (\d+-\d+-\d+)() -> ()(\d+-\d+-\d+)()/m,
+        ~r/(\w+) (\w{3}) (\d+-\d+-\d+) (\d+:\d+) -> (\w{3}) ()(\d+:\d+)|(\w+) (\w{3}) (\d+-\d+-\d+)() -> ()(\d+-\d+-\d+)()/m,
         content
       )
       |> Enum.map(fn [_match | groups] ->
