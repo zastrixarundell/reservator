@@ -29,7 +29,7 @@ defmodule DecoderTest do
         :error
 
       {:error, :tmpfile_fail} ->
-        Logger.error("Failed to create tmpfile inside of #{}")
+        Logger.error("Failed to create tmpfile inside of /tmp/reservator")
         :error
 
       {:error, _} ->
