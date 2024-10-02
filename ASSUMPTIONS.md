@@ -36,7 +36,7 @@ SEGMENT: Flight NYC 2023-03-06 08:00 -> BOS 09:25
 
 The file is split into reservations and segments. The reservations are effectively a group of date-ordered segments and they always need to have those defined segments in them, even if they aren't direct connections.
 
-Likewise, the segments don't need to have the exact relationship as they have initially and can be combined with other reservations. Essentially one segment from reservation B *could* be inserted in between two currenctly existing segments from reservation A.
+Likewise, the segments don't need to have the exact relationship as they have initially and can be combined with other reservations. Essentially one segment from reservation B *could* be inserted in between two currently existing segments from reservation A.
 
 Example:
 
@@ -74,7 +74,9 @@ The segments which start the trips are those which have the starting location se
 
 > TRIP to NYC, BOS
 
-The cities shown in this `TRIP` line are those in the whole travel which aren't the starting city `SVQ` and aren't the first connection. If the trip were to be `SVQ` -> `NYC` -> `BOS` -> `BEG` -> `LHR` -> `SVQ`, the `TRIP` line would be: `TRIP to BOS, BEG, LHR`.
+The cities shown in this `TRIP` line are those in which aren't the starting city `SVQ` and aren't the first city immediately after a flight/train from the starging city (an exception would be if a hotel was used).
+
+If the trip were to be `SVQ` -> `NYC` -> `BOS` -> `BEG` -> `LHR` -> `SVQ`, the `TRIP` line would be: `TRIP to BOS, BEG, LHR`.
 
 Example from the expected output for this would be:
 
@@ -84,3 +86,5 @@ Flight from SVQ to BCN at 2023-03-02 06:40 to 09:10
 Flight from BCN to NYC at 2023-03-02 15:00 to 22:45
 Flight from NYC to BOS at 2023-03-06 08:00 to 09:25
 ```
+
+As you can see, `BCN` is ignored. 
