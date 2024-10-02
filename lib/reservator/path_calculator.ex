@@ -115,6 +115,8 @@ defmodule Reservator.PathCalculator do
     left_2_node = current_path |> List.last()
     right_2_node = tailing_root_path |> List.first()
 
+    # I could have used a recursive, pattern-matched call but I think that would just
+    # make it less understandable.
     connected_node?(left_1_node, right_1_node) and connected_node?(left_2_node, right_2_node)
   end
 
