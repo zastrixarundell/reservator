@@ -88,3 +88,9 @@ Flight from NYC to BOS at 2023-03-06 08:00 to 09:25
 ```
 
 As you can see, `BCN` is ignored. 
+
+I did potentially think that this might just be a double reversed list of citites but that doesn't really make sense:
+
+`BOS` -> `NYC` -> `BCN` | `BCN` -> `NYC` -> `BOS`
+
+But again, the issue is that `BCN` is not present.
