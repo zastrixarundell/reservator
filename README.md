@@ -29,3 +29,21 @@ mix test
 ```
 
 > Not really a requirement, but you can run `mix credo` to check the application syntax during the development cycle.
+
+## Running
+
+To start the application, simply run:
+
+```bash
+mix reservator
+```
+
+This will try to read the file `input.txt` inside of the root directory. If no such file is present it will give an error and gracefully stop.
+
+In case a custom file should be read, you may run:
+
+```bash
+mix reservator my_custom_file.txt
+```
+
+Where the path can be either relative or absolute.
