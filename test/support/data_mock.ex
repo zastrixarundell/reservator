@@ -1,4 +1,9 @@
 defmodule DataMock do
+  @moduledoc """
+  Module providing data to be used in functions throughout the
+  app life.
+  """
+
   def data(:just_read) do
     {
       :ok,
