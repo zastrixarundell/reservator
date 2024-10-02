@@ -1,4 +1,4 @@
-# Resevator
+# Reservator
 
 A technical, test, elixir application.
 
