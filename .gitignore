@@ -25,4 +25,8 @@ reservator-*.tar
 # Temporary files, for example, from tests.
 /tmp/
 
+# ElixirLS for VScode stuff
 /.elixir_ls
+
+# Input file
+input.txt
