@@ -18,6 +18,10 @@ asdf plugin add erlang
 asdf install
 ```
 
+## Assumptions
+
+The document regarding assumptions is displayed [here](./ASSUMPTIONS.md).
+
 ## Testing
 
 There's not much setup to do for testing except for the requirement of using a system which has `mktemp` and runs an OS of the UNIX family (has `/tmp` folder).

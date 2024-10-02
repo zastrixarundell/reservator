@@ -30,3 +30,6 @@ reservator-*.tar
 
 # Input file
 input.txt
+
+# Github images
+/github_assets/
