@@ -7,10 +7,56 @@ defmodule Reservator.Decoder do
 
   require Logger
 
+  @doc """
+  Decodes the input file into usable information.
+
+  ## Examples
+
+      iex> Reservator.Decoder("input.txt")
+      {
+        :ok,
+        "SVQ",
+        [
+          [
+            %Reservator.Reservation.Segment{
+              segment_type: "Flight",
+              start_time: ~N[2023-03-02 06:40:00],
+              start_location: "SVQ",
+              end_time: ~N[2023-03-02 09:10:00],
+              end_location: "BCN"
+            },
+            %Reservator.Reservation.Segment{
+              segment_type: "Train",
+              start_time: ~N[2023-02-15 09:30:00],
+              start_location: "SVQ",
+              end_time: ~N[2023-02-15 11:00:00],
+              end_location: "MAD"
+            }
+          ],
+          [
+
+            %Reservator.Reservation.Segment{
+              segment_type: "Flight",
+              start_time: ~N[2023-03-02 15:00:00],
+              start_location: "BCN",
+              end_time: ~N[2023-03-02 22:45:00],
+              end_location: "NYC"
+            },
+            %Reservator.Reservation.Segment{
+              segment_type: "Flight",
+              start_time: ~N[2023-03-06 08:00:00],
+              start_location: "NYC",
+              end_time: ~N[2023-03-06 09:25:00],
+              end_location: "BOS"
+            }
+          ]
+        ]
+      }
+  """
   @spec decode_file(binary()) ::
-          {:error,
-           :deserialization_failed | :file_not_found | :file_read_error | :no_start_location}
-          | {:ok, binary(), list(Segment.t())}
+          {:ok, binary(), list(Segment.t())}
+          | {:error,
+             :deserialization_failed | :file_not_found | :file_read_error | :no_start_location}
   def decode_file(file_path) when is_bitstring(file_path) do
     with {:ok, binary} <- read_file(file_path),
          {:ok, start_location} <- start_location(binary),

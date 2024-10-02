@@ -9,6 +9,10 @@ defmodule Reservator.PathCalculator.Storage do
 
   alias Reservator.Reservation.Segment
 
+  @doc """
+  Start the agent needed for storage access.
+  """
+  @spec start_link(list(Segment.t())) :: {:error, any()} | {:ok, pid()}
   def start_link(travel_nodes) do
     Agent.start_link(fn -> travel_nodes end)
   end

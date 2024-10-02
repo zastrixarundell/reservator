@@ -14,7 +14,8 @@ defmodule Mix.Tasks.Reservator do
     input_file = args |> List.first("input.txt")
 
     with {:ok, starting_location, segments} <- Reservator.Decoder.decode_file(input_file),
-         {calculated_paths, []} <- Reservator.PathCalculator.calculate_path(starting_location, segments),
+         {calculated_paths, []} <-
+           Reservator.PathCalculator.calculate_path(starting_location, segments),
          final_result <- Reservator.Encoder.convert_to_string(starting_location, calculated_paths) do
       IO.puts(final_result)
     else
@@ -40,7 +41,10 @@ defmodule Mix.Tasks.Reservator do
           |> List.flatten()
           |> Enum.map_join(", ", &to_string/1)
 
-        IO.puts(:stderr, "[#{translated_failed_segments}] are not connected, please check the files!")
+        IO.puts(
+          :stderr,
+          "[#{translated_failed_segments}] are not connected, please check the files!"
+        )
 
         System.halt(5)
     end

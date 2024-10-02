@@ -7,7 +7,7 @@ defmodule DecoderTest do
 
   alias Reservator.Decoder
 
-  doctest Decoder
+  doctest Decoder, except: [{:decode_file, 1}]
 
   # Setup process
 

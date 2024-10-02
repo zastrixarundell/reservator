@@ -11,10 +11,19 @@ defmodule Reservator.PathCalculator do
   @doc """
   Function for calculating reservation path. Returns a 2-element touple. First element
   would be direction connections. The other element would be segments which aren't connected
-  to any other segment within 24 hours.    
+  to any other segment within 24 hours. 
+
+  The output is:
+
+      {calculated_paths, skipped_paths}
+      
+  Calculated paths are the paths which are correctly found and connected. Skipped paths
+  are paths which were not able to connect to any of the starting nodes, they are generally
+  there due to user misinput.
   """
   @spec calculate_path(String.t(), list(list(Segment.t()))) ::
-          {list(list(Segment.t())), list(list(Segment.t()))}
+          {calculated_paths :: list(list(Segment.t())),
+           skipped_paths :: list(skipped_paths: list(Segment.t()))}
   def calculate_path(starting_location, segments) when is_binary(starting_location) do
     {start_paths, travel_paths} =
       segments
