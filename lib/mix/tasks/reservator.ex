@@ -11,6 +11,8 @@ defmodule Mix.Tasks.Reservator do
   """
   @spec run(list(String.t())) :: :ok | no_return()
   def run(args) do
+    Mix.Task.run("app.start")
+
     input_file = args |> List.first("input.txt")
 
     with {:ok, starting_location, segments} <- Reservator.Decoder.decode_file(input_file),
