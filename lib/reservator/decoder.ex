@@ -8,7 +8,8 @@ defmodule Reservator.Decoder do
   require Logger
 
   @spec decode_file(binary()) ::
-          {:error, :deserialization_failed | :file_not_found | :file_read_error | :no_start_Location}
+          {:error,
+           :deserialization_failed | :file_not_found | :file_read_error | :no_start_Location}
           | {:ok, binary(), list(Segment.t())}
   def decode_file(file_path) when is_bitstring(file_path) do
     with {:ok, binary} <- read_file(file_path),

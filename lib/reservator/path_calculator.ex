@@ -14,7 +14,7 @@ defmodule Reservator.PathCalculator do
   to any other segment within 24 hours.    
   """
   @spec calculate_path(String.t(), list(list(Segment.t()))) ::
-    {list(list(Segment.t())), list(list(Segment.t()))}
+          {list(list(Segment.t())), list(list(Segment.t()))}
   def calculate_path(starting_location, segments) when is_binary(starting_location) do
     {start_paths, travel_paths} =
       segments
@@ -58,10 +58,12 @@ defmodule Reservator.PathCalculator do
   end
 
   @spec build_node_path_logic(
-      _ :: any(),
-      {current_path :: list(Segment.t()), current_index :: integer()},
-      storage_pid :: pid()
-    ) :: {:halt, calculated_path :: list(Segment.t())} | {:cont, {path :: list(Segment.t()), index :: integer()}}
+          _ :: any(),
+          {current_path :: list(Segment.t()), current_index :: integer()},
+          storage_pid :: pid()
+        ) ::
+          {:halt, calculated_path :: list(Segment.t())}
+          | {:cont, {path :: list(Segment.t()), index :: integer()}}
   defp build_node_path_logic(_, {current_path, current_index}, storage_pid) do
     {leading_root, tailing_root} = Enum.split(current_path, current_index + 1)
 
@@ -71,7 +73,7 @@ defmodule Reservator.PathCalculator do
 
     case connected_node do
       nil ->
-        if current_index == (length(current_path) - 1) do
+        if current_index == length(current_path) - 1 do
           {:halt, current_path}
         else
           {:cont, {current_path, current_index + 1}}
@@ -84,10 +86,12 @@ defmodule Reservator.PathCalculator do
   end
 
   @spec connected_mid_nodes?(
-    leading_root_path :: list(Segment.t()),
-    tailing_root_path :: list(Segment.t()),
-    current_path :: list(Segment.t())) :: boolean()
-  defp connected_mid_nodes?(leading_root_path, [], current_path) when is_list(leading_root_path) and is_list(current_path) do
+          leading_root_path :: list(Segment.t()),
+          tailing_root_path :: list(Segment.t()),
+          current_path :: list(Segment.t())
+        ) :: boolean()
+  defp connected_mid_nodes?(leading_root_path, [], current_path)
+       when is_list(leading_root_path) and is_list(current_path) do
     left_node = leading_root_path |> List.last()
     right_node = current_path |> List.first()
 
@@ -95,8 +99,7 @@ defmodule Reservator.PathCalculator do
   end
 
   defp connected_mid_nodes?(leading_root_path, tailing_root_path, current_path)
-    when is_list(leading_root_path) and is_list(current_path) and is_list(tailing_root_path) do
-
+       when is_list(leading_root_path) and is_list(current_path) and is_list(tailing_root_path) do
     left_1_node = leading_root_path |> List.last()
     right_1_node = current_path |> List.first()
 
@@ -111,18 +114,21 @@ defmodule Reservator.PathCalculator do
     case right_node.segment_type do
       "Hotel" ->
         left_node.end_location == right_node.start_location and
-          NaiveDateTime.beginning_of_day(left_node.end_time) == NaiveDateTime.beginning_of_day(right_node.start_time)
+          NaiveDateTime.beginning_of_day(left_node.end_time) ==
+            NaiveDateTime.beginning_of_day(right_node.start_time)
 
       _ ->
         time_compare = NaiveDateTime.compare(left_node.end_time, right_node.start_time)
 
         left_node.end_location == right_node.start_location and
           (time_compare == :lt or time_compare == :eq) and
-          (NaiveDateTime.diff(right_node.start_time, left_node.end_time, :hour) <= 24)
+          NaiveDateTime.diff(right_node.start_time, left_node.end_time, :hour) <= 24
     end
-    |> tap(&Logger.debug("""
+    |> tap(
+      &Logger.debug("""
       Are nodes #{inspect(left_node, pretty: true)} and
       #{inspect(right_node, pretty: true)} connected?: #{inspect(&1)}
-      """))
+      """)
+    )
   end
 end

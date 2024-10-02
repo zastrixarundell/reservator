@@ -17,13 +17,11 @@ defmodule DecoderTest do
     with {:ok, path} <- create_tmpfile(),
          content <- InputMock.input_file(type),
          :ok <- File.write(path, content, [:write]) do
-
       on_exit(fn -> File.rm(path) end)
 
       {
         :ok,
-        file_content: InputMock.input_file(type),
-        file_path: path
+        file_content: InputMock.input_file(type), file_path: path
       }
     else
       {:error, :tmpdir_fail} ->

@@ -18,7 +18,7 @@ defmodule Reservator.PathCalculator.Storage do
   """
   @spec list_paths(pid()) :: list(list(Segment.t()))
   def list_paths(pid) do
-    Agent.get(pid, &(&1))
+    Agent.get(pid, & &1)
   end
 
   @doc """

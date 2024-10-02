@@ -1,5 +1,4 @@
 defmodule InputMock do
-
   @moduledoc """
   Mock file for generating the content of `input.txt`.
   """

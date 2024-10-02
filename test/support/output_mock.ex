@@ -1,5 +1,4 @@
 defmodule OutputMock do
-
   @moduledoc """
   Mock file for generating the exptected output as per: https://github.com/fcm-digital/elixir_technical_challenge
   """

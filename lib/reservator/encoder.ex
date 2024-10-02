@@ -8,7 +8,8 @@ defmodule Reservator.Encoder do
   @doc """
   Convert the given segment list into the expected output string.
   """
-  @spec convert_to_string(starting_location :: String.t(), segments :: list(list(Segment.t()))) :: String.t()
+  @spec convert_to_string(starting_location :: String.t(), segments :: list(list(Segment.t()))) ::
+          String.t()
   def convert_to_string(starting_location, segments) do
     Enum.map_join(segments, "\n\n", fn segments ->
       generate_end_destinations(starting_location, segments) <> "\n" <> convert_segments(segments)
@@ -21,7 +22,8 @@ defmodule Reservator.Encoder do
     |> Enum.map_join("\n", &to_string/1)
   end
 
-  @spec generate_end_destinations(starting_location :: String.t(), segments :: list(Segment.t())) :: String.t()
+  @spec generate_end_destinations(starting_location :: String.t(), segments :: list(Segment.t())) ::
+          String.t()
   defp generate_end_destinations(starting_location, segments) do
     joined_ending_locations =
       segments
@@ -34,7 +36,8 @@ defmodule Reservator.Encoder do
   end
 
   @spec is_travel_location?(node :: Segment.t(), starting_location :: String.t()) :: boolean()
-  defp is_travel_location?(%Segment{} = node, starting_location) when is_binary(starting_location) do
+  defp is_travel_location?(%Segment{} = node, starting_location)
+       when is_binary(starting_location) do
     node.start_location != starting_location and
       node.end_location != starting_location
   end
