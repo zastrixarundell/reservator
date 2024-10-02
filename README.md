@@ -57,3 +57,5 @@ podman-compose up
 ```
 
 This is considering that the `input.txt` file is present in the current container build directory.
+
+> I've decided to opt-in for containers, just so that the time for trying out this app would be lowered... considerably...
