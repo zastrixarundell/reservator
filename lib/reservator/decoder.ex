@@ -9,7 +9,7 @@ defmodule Reservator.Decoder do
 
   @spec decode_file(binary()) ::
           {:error,
-           :deserialization_failed | :file_not_found | :file_read_error | :no_start_Location}
+           :deserialization_failed | :file_not_found | :file_read_error | :no_start_location}
           | {:ok, binary(), list(Segment.t())}
   def decode_file(file_path) when is_bitstring(file_path) do
     with {:ok, binary} <- read_file(file_path),
@@ -30,7 +30,7 @@ defmodule Reservator.Decoder do
         {:ok, start_location}
 
       _ ->
-        {:error, :no_start_Location}
+        {:error, :no_start_location}
     end
   end
 
