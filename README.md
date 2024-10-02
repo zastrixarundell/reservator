@@ -2,6 +2,8 @@
 
 A technical, test, elixir application.
 
+![with tests badge](https://img.shields.io/badge/With-ExUnit%20tests!-8A2BE2)
+
 ## Requirements
 
 The application is designed with [asdf](https://asdf-vm.com/) first in mind.
@@ -16,20 +18,14 @@ asdf plugin add erlang
 asdf install
 ```
 
-## Installation
+## Testing
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `resevator` to your list of dependencies in `mix.exs`:
+There's not much setup to do for testing except for the requirement of using a system which has `mktemp` and runs an OS of the UNIX family (has `/tmp` folder).
 
-```elixir
-def deps do
-  [
-    {:resevator, "~> 0.1.0"}
-  ]
-end
+To start the tests, run:
+
+```bash
+mix test
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/resevator>.
-
+> Not really a requirement, but you can run `mix credo` to check the application syntax during the development cycle.
