@@ -31,7 +31,7 @@ defmodule Reservator.Reservation.Segment do
   @typedoc "TimeZone-less date_time for when the segment ends"
   @type end_time :: NaiveDateTime.t()
 
-  @typedoc "What is the end location. If not defined, assume it's it's the same as starting"
+  @typedoc "What is the end location. If it's a hotel, it will be the same as the start_location"
   @type end_location :: String.t()
 
   @doc """
@@ -94,7 +94,7 @@ defmodule Reservator.Reservation.Segment do
           start_time: start_time,
           start_location: match |> Enum.at(1) |> String.upcase(),
           end_time: end_time,
-          end_location: Enum.at(match, 4)
+          end_location: (Enum.at(match, 4) || Enum.at(match, 1)) |> String.upcase()
         }
       end)
 
