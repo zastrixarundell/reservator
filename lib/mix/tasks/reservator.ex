@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.Reservator.Run do
+defmodule Mix.Tasks.Reservator do
   @moduledoc """
   Start the reservator application
   """
