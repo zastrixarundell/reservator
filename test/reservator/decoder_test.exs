@@ -1,11 +1,13 @@
 defmodule DecoderTest do
-  alias Reservator.Decoder
-
   use ExUnit.Case
 
-  doctest Decoder
-
   require Logger
+
+  import Tmpfile
+
+  alias Reservator.Decoder
+
+  doctest Decoder
 
   # Setup process
 
@@ -35,23 +37,6 @@ defmodule DecoderTest do
       {:error, _} ->
         Logger.error("Failed to write into file")
         :error
-    end
-  end
-
-  def create_tmpfile() do
-    context_path = "/tmp/reservator"
-
-    with :ok <- File.mkdir_p(context_path),
-         # Why invent hot water / a complex setup, just use UNIX's mktemp
-         {path, 0} <- System.cmd("mktemp", ["#{context_path}/input.txt.XXXXXXXXXX"]),
-         path <- String.trim(path) do
-      {:ok, path}
-    else
-      {_, value} when is_integer(value) ->
-        {:error, :tmpfile_fail}
-
-      {:error, _} ->
-        {:error, :tmpdir_fail}
     end
   end
 
