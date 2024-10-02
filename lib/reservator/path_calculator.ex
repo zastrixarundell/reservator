@@ -21,7 +21,7 @@ defmodule Reservator.PathCalculator do
       |> Enum.split_with(&same_location?(starting_location, &1))
       |> wrap_starting_locations()
 
-    # Using reduce over here for memory optimization
+    # Using reduce over here for memory & runtime optimization
     start_nodes
     |> Enum.reduce({[], travel_nodes}, fn current_node, {existing_paths, remainder_nodes} ->
       {new_path, nodes} = build_node_path(current_node, remainder_nodes)
