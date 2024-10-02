@@ -128,7 +128,7 @@ defmodule Reservator.Reservation.Segment do
 
     data =
       Regex.scan(
-        ~r/(\w+) (\w{3}) (\d+-\d+-\d+) (\d+:\d+) -> (\w{3}) ()(\d+:\d+)|(\w+) (\w{3}) (\d+-\d+-\d+)() -> ()(\d+-\d+-\d+)()/m,
+        ~r/(\w+) (\w{3}) (\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}) -> (\w{3}) ()(\d{2}:\d{2})|(\w+) (\w{3}) (\d{4}-\d{2}-\d{2})() -> ()(\d{4}-\d{2}-\d{2})()/m,
         content
       )
       |> Enum.map(fn [_match | groups] ->
@@ -172,4 +172,18 @@ defmodule Reservator.Reservation.Segment do
 
   defp empty_string_conversion(""), do: nil
   defp empty_string_conversion(string), do: string
+
+  defimpl String.Chars, for: __MODULE__ do
+    @spec to_string(segment :: Reservator.Reservation.Segment.t()) :: String.t()
+    def to_string(%Reservator.Reservation.Segment{} = segment) do
+      case segment.segment_type do
+        "Hotel" ->
+          "Hotel at #{segment.start_location} on #{Calendar.strftime(segment.start_time, "%Y-%m-%d")} to #{Calendar.strftime(segment.end_time, "%Y-%m-%d")}"
+
+        type ->
+          "#{type} from #{segment.start_location} to #{segment.end_location} " <>
+            "at #{Calendar.strftime(segment.start_time, "%Y-%m-%d %H:%M")} to #{Calendar.strftime(segment.end_time, "%H:%M")}"
+      end
+    end
+  end
 end
