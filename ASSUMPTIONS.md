@@ -4,7 +4,7 @@ Document regarding assumptions of the data in the repository.
 
 Data assumptions are that:
 
-* The year will always have 4 characters and there are a maximum of 99 hours in the day. (Won't support the year 10000000000000 with its' 105 hours a day).
+* The year will always have 4 characters and there are a maximum of 99 hours in the day. (Won't support the year 10000000000000 with its 105 hours a day).
 * Time zones are ignored (NaiveDateTime)
 
 Considering this input content:
@@ -68,10 +68,19 @@ A graphical representation would be:
 
 > You may consider two flights to be a connection if there is less than 24 hours difference.
 
-In the code, it is also assumed that `Trains` have this behaviour. In the example given there aren't any connected trains, but if there were, it would behave the same.
+In the code, it is also assumed that `Trains` have this behaviour. In the example given there aren't any connected trains, but if there were, they would behave the same.
 
 The segments which start the trips are those which have the starting location set as `SVQ`.
 
 > TRIP to NYC, BOS
 
-The cities shown in this `TRIP` line are those in the whole travel which aren't the starting city `SVQ`. If the trip were `SVQ` -> `NYC` -> `BOS` -> `BEG` -> `LHR` -> `SVQ`, the `TRIP` line would be: `TRIP to NYC, BOS, BEG, LHR`.
+The cities shown in this `TRIP` line are those in the whole travel which aren't the starting city `SVQ` and aren't the first connection. If the trip were to be `SVQ` -> `NYC` -> `BOS` -> `BEG` -> `LHR` -> `SVQ`, the `TRIP` line would be: `TRIP to BOS, BEG, LHR`.
+
+Example from the expected output for this would be:
+
+```
+TRIP to NYC, BOS
+Flight from SVQ to BCN at 2023-03-02 06:40 to 09:10
+Flight from BCN to NYC at 2023-03-02 15:00 to 22:45
+Flight from NYC to BOS at 2023-03-06 08:00 to 09:25
+```
