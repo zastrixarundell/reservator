@@ -47,3 +47,13 @@ mix reservator my_custom_file.txt
 ```
 
 Where the path can be either relative or absolute.
+
+Alternatively, if you want to use the provided OCI image, you can use that as well.
+
+For this example we'll use `podman` and `podman-compose`:
+
+```bash
+podman-compose up
+```
+
+This is considering that the `input.txt` file is present in the current container build directory.

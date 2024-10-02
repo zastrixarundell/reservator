@@ -1,0 +1,10 @@
+version: '3.9'
+
+services:
+  reservator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: reservator_test
+    volumes:
+      - ./input.txt:/app/input.txt:Z,ro
