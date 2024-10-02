@@ -3,6 +3,7 @@ defmodule Reservator.PathCalculator do
   Provides functions to calculate paths for reservations.
   """
 
+  alias Reservator.PathCalculator.Storage
   alias Reservator.Reservation.Segment
 
   require Logger
@@ -12,86 +13,116 @@ defmodule Reservator.PathCalculator do
   would be direction connections. The other element would be segments which aren't connected
   to any other segment within 24 hours.    
   """
-  @spec calculate_path(starting_location :: binary(), segments :: list(Segment.t()))
-    :: {built_paths :: list(list(Segment.t())), remainder_segments :: list(Segment.t())}
-  def calculate_path(starting_location, segments) when is_bitstring(starting_location) do
-    {start_nodes, travel_nodes} =
+  @spec calculate_path(String.t(), list(list(Segment.t()))) ::
+    {list(list(Segment.t())), list(list(Segment.t()))}
+  def calculate_path(starting_location, segments) when is_binary(starting_location) do
+    {start_paths, travel_paths} =
       segments
       |> sort_nodes()
-      |> Enum.split_with(&same_location?(starting_location, &1))
-      |> wrap_starting_locations()
+      |> Enum.split_with(&starting_path?(starting_location, &1))
 
-    # Using reduce over here for memory & runtime optimization
-    start_nodes
-    |> Enum.reduce({[], travel_nodes}, fn current_node, {existing_paths, remainder_nodes} ->
-      {new_path, nodes} = build_node_path(current_node, remainder_nodes)
+    # Not really going to use a cond, if an Agent doesn't manage to start
+    # there's something wrong outside of the app
+    {:ok, storage_pid} = Storage.start_link(travel_paths)
 
-      {existing_paths ++ [new_path], nodes}
-    end)
+    calcualted_paths =
+      start_paths
+      |> Enum.map(fn start_path ->
+        build_node_path(start_path, storage_pid)
+      end)
+
+    {calcualted_paths, Storage.list_paths(storage_pid)}
   end
 
-  defp sort_nodes(nodes) do
-    Enum.sort(nodes, fn node1, node2 ->
-      case NaiveDateTime.compare(node1.start_time, node2.start_time) do
+  @spec sort_nodes(node_matrix :: list(list(Segment.t()))) :: list(list(Segment.t()))
+  defp sort_nodes(node_matrix) do
+    node_matrix
+    |> Enum.sort(fn row1, row2 ->
+      case NaiveDateTime.compare(List.first(row1).start_time, List.first(row2).start_time) do
         :gt -> false
         _ -> true
       end
     end)
   end
 
-  defp same_location?(location, %Segment{} = node) do
-    node.start_location == location
+  @spec starting_path?(String.t(), node_path :: list(Segment.t())) :: boolean()
+  defp starting_path?(location, node_path) when is_binary(location) do
+    List.first(node_path).start_location == location
   end
 
-  defp wrap_starting_locations({start_nodes, nodes}) do
-    {
-      start_nodes |> Enum.map(&List.wrap/1),
-      nodes
-    }
+  @spec build_node_path(list(Segment.t()), storage_pid :: pid()) :: list(Segment.t())
+  defp build_node_path(starting_path, storage_pid) do
+    # Not an issue, a numeric index is used to safe-exit
+    Stream.cycle([nil])
+    |> Enum.reduce_while({starting_path, 0}, &build_node_path_logic(&1, &2, storage_pid))
   end
 
-  defp build_node_path(starting_node, potential_nodes) do
-    # Safe operator for maximum calls
-    (1..length(potential_nodes))
-    |> Enum.reduce_while({starting_node, potential_nodes}, fn _, {root_path, node_list} ->
-      end_node = root_path |> List.last()
+  @spec build_node_path_logic(
+      _ :: any(),
+      {current_path :: list(Segment.t()), current_index :: integer()},
+      storage_pid :: pid()
+    ) :: {:halt, calculated_path :: list(Segment.t())} | {:cont, {path :: list(Segment.t()), index :: integer()}}
+  defp build_node_path_logic(_, {current_path, current_index}, storage_pid) do
+    {leading_root, tailing_root} = Enum.split(current_path, current_index + 1)
 
-      case pop_first_match(node_list, &connected_node?(&1, end_node)) do
-        {nil, _} ->
-          {:halt, {root_path, node_list}}
+    connected_node =
+      Storage.list_paths(storage_pid)
+      |> Enum.find(&connected_mid_nodes?(leading_root, tailing_root, &1))
 
-        {match, new_list} ->
-          {:cont, {root_path ++ [match], new_list}}
-      end
-    end)
-  end
-
-  defp pop_first_match(list, fun) do
-    case Enum.find_index(list, &fun.(&1)) do
+    case connected_node do
       nil ->
-        {nil, list}
+        if current_index == (length(current_path) - 1) do
+          {:halt, current_path}
+        else
+          {:cont, {current_path, current_index + 1}}
+        end
 
-      index ->
-        {Enum.at(list, index), List.delete_at(list, index)}
+      nodes ->
+        Storage.remove_node(storage_pid, nodes)
+        {:cont, {leading_root ++ nodes ++ tailing_root, current_index}}
     end
   end
 
-  defp connected_node?(%Segment{} = leaf_node, %Segment{} = root_node) do
-    case leaf_node.segment_type do
+  @spec connected_mid_nodes?(
+    leading_root_path :: list(Segment.t()),
+    tailing_root_path :: list(Segment.t()),
+    current_path :: list(Segment.t())) :: boolean()
+  defp connected_mid_nodes?(leading_root_path, [], current_path) when is_list(leading_root_path) and is_list(current_path) do
+    left_node = leading_root_path |> List.last()
+    right_node = current_path |> List.first()
+
+    connected_node?(left_node, right_node)
+  end
+
+  defp connected_mid_nodes?(leading_root_path, tailing_root_path, current_path)
+    when is_list(leading_root_path) and is_list(current_path) and is_list(tailing_root_path) do
+
+    left_1_node = leading_root_path |> List.last()
+    right_1_node = current_path |> List.first()
+
+    left_2_node = current_path |> List.last()
+    right_2_node = tailing_root_path |> List.first()
+
+    connected_node?(left_1_node, right_1_node) and connected_node?(left_2_node, right_2_node)
+  end
+
+  @spec connected_node?(left_node :: Segment.t(), right_node :: Segment.t()) :: boolean()
+  defp connected_node?(%Segment{} = left_node, %Segment{} = right_node) do
+    case right_node.segment_type do
       "Hotel" ->
-        root_node.end_location == leaf_node.start_location and
-          NaiveDateTime.beginning_of_day(root_node.end_time) == NaiveDateTime.beginning_of_day(leaf_node.start_time)
+        left_node.end_location == right_node.start_location and
+          NaiveDateTime.beginning_of_day(left_node.end_time) == NaiveDateTime.beginning_of_day(right_node.start_time)
 
       _ ->
-        time_compare = NaiveDateTime.compare(root_node.end_time, leaf_node.start_time)
+        time_compare = NaiveDateTime.compare(left_node.end_time, right_node.start_time)
 
-        root_node.end_location == leaf_node.start_location and
+        left_node.end_location == right_node.start_location and
           (time_compare == :lt or time_compare == :eq) and
-          (NaiveDateTime.diff(leaf_node.start_time, root_node.end_time, :hour) <= 24)
+          (NaiveDateTime.diff(right_node.start_time, left_node.end_time, :hour) <= 24)
     end
     |> tap(&Logger.debug("""
-      For node #{inspect(root_node, pretty: true)} and
-      #{inspect(leaf_node, pretty: true)} the result is: #{inspect(&1)}
+      Are nodes #{inspect(left_node, pretty: true)} and
+      #{inspect(right_node, pretty: true)} connected?: #{inspect(&1)}
       """))
   end
 end
