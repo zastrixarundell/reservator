@@ -35,11 +35,15 @@ defmodule Reservator.Reservation.Segment do
   @type end_location :: String.t()
 
   @doc """
-  Function which loads segment data in as a string, scans it and generates a struct list for the given information.
+  Function which loads segment data in as a string or an array of strings. In case
+  the argument is an array, it will perform the singular string operation on each
+  of its elements.
+
+  Scans input string and generates a struct list for the given information.
 
   ## Examples
 
-      iex> Reservator.Reservation.Segment.deserialize_segment("Flight SVQ 2023-03-02 06:40 -> BCN 09:59")
+      iex> Reservator.Reservation.Segment.deserialize_segments("Flight SVQ 2023-03-02 06:40 -> BCN 09:59")
       {:ok,
         [
           %Reservator.Reservation.Segment{
@@ -51,12 +55,65 @@ defmodule Reservator.Reservation.Segment do
           }
         ]
       }
-        
-      iex> Reservator.Reservation.Segment.deserialize_segment("Flight SVQ 2023-03-02 06:40 -> BCN 09:60")
+
+      iex> Reservator.Reservation.Segment.deserialize_segments(
+      ...>   [
+      ...>     "Flight SVQ 2023-03-02 06:40 -> BCN 09:59" <> "\\n" <>
+      ...>     "Flight SVQ 2023-03-02 03:40 -> BCN 06:59"
+      ...>   ]
+      ...> )
+      {
+        :ok,
+        [
+          [
+            %Reservator.Reservation.Segment{
+              end_location: "BCN",
+              end_time: ~N[2023-03-02 09:59:00],
+              segment_type: "Flight",
+              start_location: "SVQ",
+              start_time: ~N[2023-03-02 06:40:00]
+            },
+            %Reservator.Reservation.Segment{
+              end_location: "BCN",
+              end_time: ~N[2023-03-02 06:59:00],
+              segment_type: "Flight",
+              start_location: "SVQ",
+              start_time: ~N[2023-03-02 03:40:00]
+            }
+          ]
+        ]
+      }
+
+      iex> Reservator.Reservation.Segment.deserialize_segments("Flight SVQ 2023-03-02 06:40 -> BCN 09:60")
       {:error, :deserialization_failed}
   """
-  @spec deserialize_segment(content :: String.t()) :: {:ok, list(__MODULE__.t())} | {:error, :deserialization_failed}
-  def deserialize_segment(content) do
+  @spec deserialize_segments(content :: String.t() | list(String.t())) ::
+          {:ok, list(Reservator.Reservation.Segment.t())} | {:error, :deserialization_failed}
+  def deserialize_segments(content) when is_list(content) do
+    deserialized_data =
+      content
+      |> Enum.map(&deserialize_segments/1)
+
+    any_broken? =
+      deserialized_data
+      |> Enum.any?(fn segment_chunk ->
+        case segment_chunk do
+          {:error, _} ->
+            true
+
+          _ ->
+            false
+        end
+      end)
+
+    if any_broken? do
+      {:error, :deserialization_failed}
+    else
+      {:ok, Enum.map(deserialized_data, &elem(&1, 1))}
+    end
+  end
+
+  def deserialize_segments(content) when is_binary(content) do
     # That's a serious regex! But really is's a regex which does matching for a set amount of fields
     # (even if they don't exist), so that it handles both travel and location segments.
     #
@@ -86,7 +143,7 @@ defmodule Reservator.Reservation.Segment do
           |> NaiveDateTime.from_iso8601!()
 
         end_time =
-          gen_end_date(Enum.at(match, 2), Enum.at(match, 5), (Enum.at(match, 6)))
+          gen_end_date(Enum.at(match, 2), Enum.at(match, 5), Enum.at(match, 6))
           |> NaiveDateTime.from_iso8601!()
 
         %__MODULE__{
@@ -110,7 +167,7 @@ defmodule Reservator.Reservation.Segment do
   defp gen_start_date(start_date, nil), do: "#{start_date} 00:00:00"
   defp gen_start_date(start_date, start_time), do: "#{start_date} #{start_time}:00"
 
-  defp gen_end_date(start_date, nil, end_time), do:  "#{start_date} #{end_time}:00"
+  defp gen_end_date(start_date, nil, end_time), do: "#{start_date} #{end_time}:00"
   defp gen_end_date(_start_date, end_date, _end_time), do: "#{end_date} 00:00:00"
 
   defp empty_string_conversion(""), do: nil
