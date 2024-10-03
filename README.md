@@ -32,7 +32,8 @@ To start the tests, run:
 mix test
 ```
 
-> Not really a requirement, but you can run `mix credo` to check the application syntax during the development cycle.
+> [!TIP]
+> You can run `mix credo` to check the application syntax during the development cycle.
 
 ## Running
 
@@ -62,4 +63,8 @@ podman-compose up
 
 This is considering that the `input.txt` file is present in the current container build directory.
 
+> [!TIP]
+> Docker should work just fine as podman is a replacement for docker.
+
+> [!NOTE]
 > I've decided to opt-in for containers, just so that the time for trying out this app would be lowered... considerably...
