@@ -14,4 +14,6 @@ RUN mix deps.get
 
 RUN mix deps.compile
 
+RUN mix compile
+
 CMD ["/usr/local/bin/mix", "reservator"]
