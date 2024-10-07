@@ -30,9 +30,9 @@ defmodule Reservator.PathCalculator do
       when is_list(segments) do
     {start_paths, travel_paths} =
       segments
-      # needs to be called, otherwise data can be invalid
+      # Needs to be called, otherwise data can be invalid
       |> sort_nodes()
-      |> Enum.split_with(&starting_node?(starting_location, &1))
+      |> Enum.split_with(fn node -> node.start_location == starting_location end)
 
     {:ok, storage_pid} = Storage.start_link(travel_paths)
 
@@ -83,23 +83,6 @@ defmodule Reservator.PathCalculator do
         _ -> true
       end
     end)
-  end
-
-  @doc """
-  Is the current node a starting node, as in is the `location` the same as `segment.start_location`.
-
-  ## Examples
-
-      iex> Reservator.PathCalculator.starting_node?("SVQ", %Reservator.Reservation.Segment{start_location: "SVQ"})
-      true
-      
-      iex> Reservator.PathCalculator.starting_node?("SVQ", %Reservator.Reservation.Segment{start_location: "NYC"})
-      false
-  """
-  @spec starting_node?(String.t(), node :: Segment.t()) :: boolean()
-  def starting_node?(location, %Segment{start_location: segment_start})
-      when is_binary(location) do
-    segment_start == location
   end
 
   @doc """
