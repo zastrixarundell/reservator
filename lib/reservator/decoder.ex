@@ -55,8 +55,7 @@ defmodule Reservator.Decoder do
   def decode_file(file_path) when is_bitstring(file_path) do
     with {:ok, binary} <- read_file(file_path),
          {:ok, start_location} <- start_location(binary),
-         {:ok, segments} <- Segment.deserialize_segments(binary)do
-
+         {:ok, segments} <- Segment.deserialize_segments(binary) do
       Logger.debug("Deserialized #{length(segments)} segments")
       {:ok, start_location, segments}
     else

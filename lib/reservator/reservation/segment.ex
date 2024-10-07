@@ -68,7 +68,8 @@ defmodule Reservator.Reservation.Segment do
         :deserialization_failed
       }
   """
-  @spec deserialize_segments(reservations :: String.t()) :: {:ok, list(Segment.t())} | {:error, :deserialization_failed}
+  @spec deserialize_segments(reservations :: String.t()) ::
+          {:ok, list(Segment.t())} | {:error, :deserialization_failed}
   def deserialize_segments(reservations) do
     segments =
       reservations
@@ -98,7 +99,10 @@ defmodule Reservator.Reservation.Segment do
       }
   """
   @spec deserialize_segment!(segment :: binary()) :: Segment.t()
-  def deserialize_segment!(<<"SEGMENT: Hotel ", location::binary-3, " ", start_date::binary-10, " -> ", end_date::binary-10>>) do
+  def deserialize_segment!(
+        <<"SEGMENT: Hotel ", location::binary-3, " ", start_date::binary-10, " -> ",
+          end_date::binary-10>>
+      ) do
     %__MODULE__{
       segment_type: "Hotel",
       start_time: gen_start_date(start_date, nil),
@@ -108,7 +112,10 @@ defmodule Reservator.Reservation.Segment do
     }
   end
 
-  def deserialize_segment!(<<"SEGMENT: Train ", location::binary-3, " ", start_date::binary-10, " ", start_time::binary-5, " -> ", end_location::binary-3, " ", end_time::binary-5>>) do
+  def deserialize_segment!(
+        <<"SEGMENT: Train ", location::binary-3, " ", start_date::binary-10, " ",
+          start_time::binary-5, " -> ", end_location::binary-3, " ", end_time::binary-5>>
+      ) do
     %__MODULE__{
       segment_type: "Train",
       start_time: gen_start_date(start_date, start_time),
@@ -118,7 +125,10 @@ defmodule Reservator.Reservation.Segment do
     }
   end
 
-  def deserialize_segment!(<<"SEGMENT: Flight ", location::binary-3, " ", start_date::binary-10, " ", start_time::binary-5, " -> ", end_location::binary-3, " ", end_time::binary-5>>) do
+  def deserialize_segment!(
+        <<"SEGMENT: Flight ", location::binary-3, " ", start_date::binary-10, " ",
+          start_time::binary-5, " -> ", end_location::binary-3, " ", end_time::binary-5>>
+      ) do
     %__MODULE__{
       segment_type: "Flight",
       start_time: gen_start_date(start_date, start_time),
@@ -132,11 +142,17 @@ defmodule Reservator.Reservation.Segment do
     nil
   end
 
-  defp gen_start_date(start_date, nil), do: "#{start_date} 00:00:00" |> NaiveDateTime.from_iso8601!()
-  defp gen_start_date(start_date, start_time), do: "#{start_date} #{start_time}:00" |> NaiveDateTime.from_iso8601!()
+  defp gen_start_date(start_date, nil),
+    do: "#{start_date} 00:00:00" |> NaiveDateTime.from_iso8601!()
 
-  defp gen_end_date(start_date, nil, end_time), do: "#{start_date} #{end_time}:00" |> NaiveDateTime.from_iso8601!()
-  defp gen_end_date(_start_date, end_date, _end_time), do: "#{end_date} 00:00:00" |> NaiveDateTime.from_iso8601!()
+  defp gen_start_date(start_date, start_time),
+    do: "#{start_date} #{start_time}:00" |> NaiveDateTime.from_iso8601!()
+
+  defp gen_end_date(start_date, nil, end_time),
+    do: "#{start_date} #{end_time}:00" |> NaiveDateTime.from_iso8601!()
+
+  defp gen_end_date(_start_date, end_date, _end_time),
+    do: "#{end_date} 00:00:00" |> NaiveDateTime.from_iso8601!()
 
   # Implementation for the encoding part.
   defimpl String.Chars, for: __MODULE__ do

@@ -24,12 +24,12 @@ defmodule Reservator.PathCalculator do
   there due to user misinput.
   """
   @spec calculate_path(String.t(), list(Segment.t())) ::
-          {calculated_paths :: list(list(Segment.t())),
-           skipped_paths :: list(Segment.t())}
+          {calculated_paths :: list(list(Segment.t())), skipped_paths :: list(Segment.t())}
   def calculate_path(starting_location, segments) when is_binary(starting_location) do
     {start_paths, travel_paths} =
       segments
-      |> sort_nodes() # needs to be called, otherwise data can be invalid
+      # needs to be called, otherwise data can be invalid
+      |> sort_nodes()
       |> Enum.split_with(&starting_node?(starting_location, &1))
 
     {:ok, storage_pid} = Storage.start_link(travel_paths)
@@ -38,7 +38,8 @@ defmodule Reservator.PathCalculator do
       start_paths
       |> Enum.map(&List.wrap/1)
       |> Enum.map(&build_path(&1, storage_pid))
-      |> Enum.map(&build_path(&1, storage_pid, true)) # Guess the remainder
+      # Guess the remainder
+      |> Enum.map(&build_path(&1, storage_pid, true))
 
     {calcualted_paths, Storage.list_paths(storage_pid)}
   end
@@ -94,7 +95,8 @@ defmodule Reservator.PathCalculator do
       false
   """
   @spec starting_node?(String.t(), node :: Segment.t()) :: boolean()
-  def starting_node?(location, %Segment{start_location: segment_start}) when is_binary(location) do
+  def starting_node?(location, %Segment{start_location: segment_start})
+      when is_binary(location) do
     segment_start == location
   end
 
@@ -107,7 +109,8 @@ defmodule Reservator.PathCalculator do
 
   The return value is a list of connected segments.
   """
-  @spec build_path(starting_path :: list(Segment.t()), storage_pid :: pid(), guess? :: boolean()) :: list(Segment.t())
+  @spec build_path(starting_path :: list(Segment.t()), storage_pid :: pid(), guess? :: boolean()) ::
+          list(Segment.t())
   def build_path(starting_path, storage_pid, guess? \\ false) do
     # Loop until `{:halt, _}` is called.
     Stream.cycle([nil])
@@ -191,14 +194,15 @@ defmodule Reservator.PathCalculator do
       true
     
   """
-  @spec connected_node?(left_node :: Segment.t(), right_node :: Segment.t(), guess? :: boolean()) :: boolean()
+  @spec connected_node?(left_node :: Segment.t(), right_node :: Segment.t(), guess? :: boolean()) ::
+          boolean()
   def connected_node?(%Segment{} = left_node, %Segment{} = right_node, guess? \\ false) do
     {left_time, right_time} =
       case right_node.segment_type do
         "Hotel" ->
           {
             NaiveDateTime.beginning_of_day(left_node.end_time),
-            NaiveDateTime.beginning_of_day(right_node.start_time),
+            NaiveDateTime.beginning_of_day(right_node.start_time)
           }
 
         _ ->
@@ -217,6 +221,10 @@ defmodule Reservator.PathCalculator do
         time_difference <= if guess?, do: @guess_days, else: 1
 
     connected?
-    |> tap(&Logger.debug("#{inspect(left_node, pretty: true)} and #{inspect(right_node, pretty: true)} connected?: #{inspect(&1)}"))
+    |> tap(
+      &Logger.debug(
+        "#{inspect(left_node, pretty: true)} and #{inspect(right_node, pretty: true)} connected?: #{inspect(&1)}"
+      )
+    )
   end
 end
