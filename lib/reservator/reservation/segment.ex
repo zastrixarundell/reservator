@@ -41,34 +41,49 @@ defmodule Reservator.Reservation.Segment do
 
   ## Examples
 
-      iex> Reservator.Reservation.Segment.deserialize_segments!("SEGMENT: Flight BCN 2023-03-02 15:00 -> NYC 22:45\\nSEGMENT: Flight NYC 2023-03-06 08:00 -> BOS 09:25")
-      [
-        %Reservator.Reservation.Segment{
-          segment_type: "Flight",
-          start_time: ~N[2023-03-02 15:00:00],
-          start_location: "BCN",
-          end_time: ~N[2023-03-02 22:45:00],
-          end_location: "NYC"
-        },
-        %Reservator.Reservation.Segment{
-          segment_type: "Flight",
-          start_time: ~N[2023-03-06 08:00:00],
-          start_location: "NYC",
-          end_time: ~N[2023-03-06 09:25:00],
-          end_location: "BOS"
-        }
-      ]
+      iex> Reservator.Reservation.Segment.deserialize_segments("SEGMENT: Flight BCN 2023-03-02 15:00 -> NYC 22:45\\nSEGMENT: Flight NYC 2023-03-06 08:00 -> BOS 09:25")
+      {
+       :ok,
+        [
+          %Reservator.Reservation.Segment{
+            segment_type: "Flight",
+            start_time: ~N[2023-03-02 15:00:00],
+            start_location: "BCN",
+            end_time: ~N[2023-03-02 22:45:00],
+            end_location: "NYC"
+          },
+          %Reservator.Reservation.Segment{
+            segment_type: "Flight",
+            start_time: ~N[2023-03-06 08:00:00],
+            start_location: "NYC",
+            end_time: ~N[2023-03-06 09:25:00],
+            end_location: "BOS"
+          }
+        ]
+      }
+        
+      iex> Reservator.Reservation.Segment.deserialize_segments("SEGMENT: Flight BCN 2023-03-02 15:00 -> NYC 22:45\\nSEGMENT: Flight NYC 2023-03-06 08:00 -> BOS 09:60")
+      {
+        :error,
+        :deserialization_failed
+      }
   """
-  @spec deserialize_segments!(reservations :: String.t()) :: list(Segment.t())
-  def deserialize_segments!(reservations) do
-    reservations
-    |> String.split("\n")
-    |> Enum.map(&deserialize_segment!/1)
-    |> Enum.reject(&is_nil/1)
+  @spec deserialize_segments(reservations :: String.t()) :: {:ok, list(Segment.t())} | {:error, :deserialization_failed}
+  def deserialize_segments(reservations) do
+    segments =
+      reservations
+      |> String.split("\n")
+      |> Enum.map(&deserialize_segment!/1)
+
+    {:ok, segments}
+  rescue
+    error in ArgumentError ->
+      Logger.warning("Date failed with #{error.message}")
+      {:error, :deserialization_failed}
   end
 
   @doc """
-  Decodes the segment from a string. It will return either the decoded segment or nil.
+  Decodes the segment from a string. It will return either the decoded segment or raise `ArgumentError`.
 
   ## Examples
 
@@ -81,7 +96,7 @@ defmodule Reservator.Reservation.Segment do
         end_location: "BCN"
       }
   """
-  @spec deserialize_segment!(segment :: binary()) :: Segment.t() | nil
+  @spec deserialize_segment!(segment :: binary()) :: Segment.t()
   def deserialize_segment!(<<"SEGMENT: Hotel ", location::binary-3, " ", start_date::binary-10, " -> ", end_date::binary-10>>) do
     %__MODULE__{
       segment_type: "Hotel",
@@ -90,10 +105,6 @@ defmodule Reservator.Reservation.Segment do
       end_time: gen_end_date(nil, end_date, nil),
       end_location: location
     }
-  rescue
-    error in ArgumentError ->
-      Logger.warning("Date failed with #{error.message}")
-      nil
   end
 
   def deserialize_segment!(<<"SEGMENT: Train ", location::binary-3, " ", start_date::binary-10, " ", start_time::binary-5, " -> ", end_location::binary-3, " ", end_time::binary-5>>) do
@@ -104,10 +115,6 @@ defmodule Reservator.Reservation.Segment do
       end_time: gen_end_date(start_date, nil, end_time),
       end_location: end_location
     }
-  rescue
-    error in ArgumentError ->
-      Logger.warning("Date failed with #{error.message}")
-      nil
   end
 
   def deserialize_segment!(<<"SEGMENT: Flight ", location::binary-3, " ", start_date::binary-10, " ", start_time::binary-5, " -> ", end_location::binary-3, " ", end_time::binary-5>>) do
@@ -118,10 +125,6 @@ defmodule Reservator.Reservation.Segment do
       end_time: gen_end_date(start_date, nil, end_time),
       end_location: end_location
     }
-  rescue
-    error in ArgumentError ->
-      Logger.warning("Date failed with #{error.message}")
-      nil
   end
 
   def deserialize_segment!(_) do

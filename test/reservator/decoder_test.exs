@@ -46,7 +46,7 @@ defmodule DecoderTest do
 
       assert start_location == "SVQ"
 
-      assert length(content) == 6
+      assert length(content) == 23
     end
   end
 
