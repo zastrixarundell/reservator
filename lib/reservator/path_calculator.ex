@@ -197,7 +197,7 @@ defmodule Reservator.PathCalculator do
   @spec connected_node?(left_node :: Segment.t(), right_node :: Segment.t(), guess? :: boolean()) ::
           boolean()
   def connected_node?(%Segment{} = left_node, %Segment{} = right_node, guess? \\ false) do
-    {left_time, right_time} =
+    {left_node_time, right_node_time} =
       case right_node.segment_type do
         "Hotel" ->
           {NaiveDateTime.beginning_of_day(left_node.end_time),
@@ -207,8 +207,8 @@ defmodule Reservator.PathCalculator do
           {left_node.end_time, right_node.start_time}
       end
 
-    time_difference = NaiveDateTime.diff(right_time, left_time, :day)
-    time_compare = NaiveDateTime.compare(right_time, left_time)
+    time_difference = NaiveDateTime.diff(right_node_time, left_node_time, :day)
+    time_compare = NaiveDateTime.compare(right_node_time, left_node_time)
 
     connected? =
       left_node.end_location == right_node.start_location and
