@@ -27,10 +27,9 @@ defmodule Reservator.Decoder do
   """
   @spec read_file(file_path :: String.t())  :: {:ok, String.t()} | {:error, :enoent | :eacces | :eisdir | :enotdir | :enomem}
   def read_file(file_path) when is_binary(file_path) do
-    case File.read(file_path) do
-      {:ok, binary} ->
-        Logger.debug("File #{inspect(file_path)} read successfuly.")
-        {:ok, binary}
+    with {:ok, binary} <- File.read(file_path) do
+      Logger.debug("File #{inspect(file_path)} read successfuly.")
+      {:ok, binary}
     end
   end
 
