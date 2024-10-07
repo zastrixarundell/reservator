@@ -17,6 +17,9 @@ defmodule Reservator do
   Where the input path can be either relative or absolute.
   """
 
+  # Example: https://github.com/zastrixarundell/data_reeler/blob/main/lib/data_reeler.ex
+  # The default module doesn't have similar behaviour, Module.Application does though.
+
   alias Reservator.{Decoder, Encoder, PathCalculator}
   alias Reservator.Reservation.Segment
 
