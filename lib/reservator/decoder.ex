@@ -12,7 +12,7 @@ defmodule Reservator.Decoder do
 
   ## Examples
 
-      iex> Reservator.Decoder("input.txt")
+      iex> Reservator.Decoder.decode_file("input.txt")
       {
         :ok,
         "SVQ",
@@ -58,9 +58,6 @@ defmodule Reservator.Decoder do
          {:ok, segments} <- Segment.deserialize_segments(binary) do
       Logger.debug("Deserialized #{length(segments)} segments")
       {:ok, start_location, segments}
-    else
-      {:error, err} ->
-        {:error, err}
     end
   end
 
