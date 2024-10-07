@@ -17,14 +17,14 @@ defmodule Reservator.PathCalculator do
 
   The output is:
 
-      {calculated_paths, skipped_paths}
+    {calculated_paths, skipped_segments}
       
   Calculated paths are the paths which are correctly found and connected. Skipped paths
   are paths which were not able to connect to any of the starting nodes, they are generally
   there due to user misinput.
   """
   @spec calculate_path(String.t(), list(Segment.t())) ::
-          {calculated_paths :: list(list(Segment.t())), skipped_paths :: list(Segment.t())}
+          {calculated_paths :: list(list(Segment.t())), skipped_segments :: list(Segment.t())}
   def calculate_path(starting_location, segments) when is_binary(starting_location) do
     {start_paths, travel_paths} =
       segments
@@ -200,16 +200,11 @@ defmodule Reservator.PathCalculator do
     {left_time, right_time} =
       case right_node.segment_type do
         "Hotel" ->
-          {
-            NaiveDateTime.beginning_of_day(left_node.end_time),
-            NaiveDateTime.beginning_of_day(right_node.start_time)
-          }
+          {NaiveDateTime.beginning_of_day(left_node.end_time),
+           NaiveDateTime.beginning_of_day(right_node.start_time)}
 
         _ ->
-          {
-            left_node.end_time,
-            right_node.start_time
-          }
+          {left_node.end_time, right_node.start_time}
       end
 
     time_difference = NaiveDateTime.diff(right_time, left_time, :day)
