@@ -3,6 +3,8 @@ defmodule Reservator.PathCalculator do
   Provides functions to calculate paths for reservations.
   """
 
+  @guess_days 7
+
   alias Reservator.PathCalculator.Storage
   alias Reservator.Reservation.Segment
 
@@ -21,125 +23,200 @@ defmodule Reservator.PathCalculator do
   are paths which were not able to connect to any of the starting nodes, they are generally
   there due to user misinput.
   """
-  @spec calculate_path(String.t(), list(list(Segment.t()))) ::
+  @spec calculate_path(String.t(), list(Segment.t())) ::
           {calculated_paths :: list(list(Segment.t())),
-           skipped_paths :: list(skipped_paths: list(Segment.t()))}
+           skipped_paths :: list(Segment.t())}
   def calculate_path(starting_location, segments) when is_binary(starting_location) do
     {start_paths, travel_paths} =
       segments
-      |> sort_nodes()
-      |> Enum.split_with(&starting_path?(starting_location, &1))
+      |> sort_nodes() # needs to be called, otherwise data can be invalid
+      |> Enum.split_with(&starting_node?(starting_location, &1))
 
-    # Not really going to use a cond, if an Agent doesn't manage to start
-    # there's something wrong outside of the app
     {:ok, storage_pid} = Storage.start_link(travel_paths)
 
     calcualted_paths =
       start_paths
-      |> Enum.map(fn start_path ->
-        build_node_path(start_path, storage_pid)
-      end)
+      |> Enum.map(&List.wrap/1)
+      |> Enum.map(&build_path(&1, storage_pid))
+      |> Enum.map(&build_path(&1, storage_pid, true)) # Guess the remainder
 
     {calcualted_paths, Storage.list_paths(storage_pid)}
   end
 
-  @spec sort_nodes(node_matrix :: list(list(Segment.t()))) :: list(list(Segment.t()))
-  defp sort_nodes(node_matrix) do
-    node_matrix
-    |> Enum.sort(fn row1, row2 ->
-      case NaiveDateTime.compare(List.first(row1).start_time, List.first(row2).start_time) do
+  @doc """
+  Order the nodes so that older start_time is first.
+
+  ## Examples
+
+      iex> Reservator.PathCalculator.sort_nodes(
+      ...>   [
+      ...>     %Reservator.Reservation.Segment{
+      ...>       start_time: ~N[2023-03-06 08:00:00],
+      ...>       start_location: "BCN"
+      ...>     },
+      ...>     %Reservator.Reservation.Segment{
+      ...>       start_time: ~N[2023-03-02 15:00:00],
+      ...>       start_location: "NYC"
+      ...>     }
+      ...>   ]
+      ...> )
+      [
+        %Reservator.Reservation.Segment{
+          start_time: ~N[2023-03-02 15:00:00],
+          start_location: "NYC",
+        },
+        %Reservator.Reservation.Segment{
+          start_time: ~N[2023-03-06 08:00:00],
+          start_location: "BCN",
+        }
+      ]
+  """
+  @spec sort_nodes(node_list :: list(Segment.t())) :: list(Segment.t())
+  def sort_nodes(node_list) do
+    node_list
+    |> Enum.sort(fn node1, node2 ->
+      case NaiveDateTime.compare(node1.start_time, node2.start_time) do
         :gt -> false
         _ -> true
       end
     end)
   end
 
-  @spec starting_path?(String.t(), node_path :: list(Segment.t())) :: boolean()
-  defp starting_path?(location, node_path) when is_binary(location) do
-    List.first(node_path).start_location == location
+  @doc """
+  Is the current node a starting node, as in is the `location` the same as `segment.start_location`.
+
+  ## Examples
+
+      iex> Reservator.PathCalculator.starting_node?("SVQ", %Reservator.Reservation.Segment{start_location: "SVQ"})
+      true
+      
+      iex> Reservator.PathCalculator.starting_node?("SVQ", %Reservator.Reservation.Segment{start_location: "NYC"})
+      false
+  """
+  @spec starting_node?(String.t(), node :: Segment.t()) :: boolean()
+  def starting_node?(location, %Segment{start_location: segment_start}) when is_binary(location) do
+    segment_start == location
   end
 
-  @spec build_node_path(list(Segment.t()), storage_pid :: pid()) :: list(Segment.t())
-  defp build_node_path(starting_path, storage_pid) do
-    # Not an issue, a numeric index is used to safe-exit
+  @doc """
+  Build the path for the current segment list.
+
+  * `starting_path` is the current path on which it's searched upon.
+  * `storage_pid` is the pid of the storage agent.
+  * `guess?` is whether to guess a connection or not. A guessed connection is within #{@guess_days} days while a non-guessed is within one day.
+
+  The return value is a list of connected segments.
+  """
+  @spec build_path(starting_path :: list(Segment.t()), storage_pid :: pid(), guess? :: boolean()) :: list(Segment.t())
+  def build_path(starting_path, storage_pid, guess? \\ false) do
+    # Loop until `{:halt, _}` is called.
     Stream.cycle([nil])
-    |> Enum.reduce_while({starting_path, 0}, &build_node_path_logic(&1, &2, storage_pid))
-  end
+    |> Enum.reduce_while(starting_path, fn _, current_path ->
+      last_index = List.last(current_path)
 
-  @spec build_node_path_logic(
-          _ :: any(),
-          {current_path :: list(Segment.t()), current_index :: integer()},
-          storage_pid :: pid()
-        ) ::
-          {:halt, calculated_path :: list(Segment.t())}
-          | {:cont, {path :: list(Segment.t()), index :: integer()}}
-  defp build_node_path_logic(_, {current_path, current_index}, storage_pid) do
-    {leading_root, tailing_root} = Enum.split(current_path, current_index + 1)
+      current_elements = Storage.list_paths(storage_pid)
 
-    connected_node =
-      Storage.list_paths(storage_pid)
-      |> Enum.find(&connected_mid_nodes?(leading_root, tailing_root, &1))
-
-    case connected_node do
-      nil ->
-        if current_index == length(current_path) - 1 do
+      case Enum.find(current_elements, &connected_node?(last_index, &1, guess?)) do
+        nil ->
           {:halt, current_path}
-        else
-          {:cont, {current_path, current_index + 1}}
-        end
 
-      nodes ->
-        Storage.remove_node(storage_pid, nodes)
-        {:cont, {leading_root ++ nodes ++ tailing_root, current_index}}
-    end
+        value ->
+          Storage.remove_node(storage_pid, value)
+
+          {:cont, current_path ++ [value]}
+      end
+    end)
   end
 
-  @spec connected_mid_nodes?(
-          leading_root_path :: list(Segment.t()),
-          tailing_root_path :: list(Segment.t()),
-          current_path :: list(Segment.t())
-        ) :: boolean()
-  defp connected_mid_nodes?(leading_root_path, [], current_path)
-       when is_list(leading_root_path) and is_list(current_path) do
-    left_node = leading_root_path |> List.last()
-    right_node = current_path |> List.first()
+  @doc """
+  Determine whether a node is connected. If `guess?` is set to false, the nodes will only be connected
+  if there is a 24 hours differnce between them. If `guess?` is true, it will only be connected if there's
+  a week between them.
 
-    connected_node?(left_node, right_node)
-  end
+  ## Examples
 
-  defp connected_mid_nodes?(leading_root_path, tailing_root_path, current_path)
-       when is_list(leading_root_path) and is_list(current_path) and is_list(tailing_root_path) do
-    left_1_node = leading_root_path |> List.last()
-    right_1_node = current_path |> List.first()
+      iex> Reservator.PathCalculator.connected_node?(
+      ...>   %Reservator.Reservation.Segment{
+      ...>     segment_type: "Flight",
+      ...>     start_time: ~N[2023-03-02 06:40:00],
+      ...>     start_location: "SVQ",
+      ...>     end_time: ~N[2023-03-02 09:10:00],
+      ...>     end_location: "BCN"
+      ...>   },
+      ...>   %Reservator.Reservation.Segment{
+      ...>     segment_type: "Flight",
+      ...>     start_time: ~N[2023-03-02 15:00:00],
+      ...>     start_location: "BCN",
+      ...>     end_time: ~N[2023-03-02 22:45:00],
+      ...>     end_location: "NYC"
+      ...>   }
+      ...> )
+      true
+      
+      iex> Reservator.PathCalculator.connected_node?(
+      ...>   %Reservator.Reservation.Segment{
+      ...>     segment_type: "Flight",
+      ...>     start_time: ~N[2023-03-02 15:00:00],
+      ...>     start_location: "BCN",
+      ...>     end_time: ~N[2023-03-02 22:45:00],
+      ...>     end_location: "NYC"
+      ...>   },
+      ...>   %Reservator.Reservation.Segment{
+      ...>     segment_type: "Flight",
+      ...>     start_time: ~N[2023-03-06 08:00:00],
+      ...>     start_location: "NYC",
+      ...>     end_time: ~N[2023-03-06 09:25:00],
+      ...>     end_location: "BOS"
+      ...>   }
+      ...> )
+      false
+      
+      iex> Reservator.PathCalculator.connected_node?(
+      ...>   %Reservator.Reservation.Segment{
+      ...>     segment_type: "Flight",
+      ...>     start_time: ~N[2023-03-02 15:00:00],
+      ...>     start_location: "BCN",
+      ...>     end_time: ~N[2023-03-02 22:45:00],
+      ...>     end_location: "NYC"
+      ...>   },
+      ...>   %Reservator.Reservation.Segment{
+      ...>     segment_type: "Flight",
+      ...>     start_time: ~N[2023-03-06 08:00:00],
+      ...>     start_location: "NYC",
+      ...>     end_time: ~N[2023-03-06 09:25:00],
+      ...>     end_location: "BOS"
+      ...>   },
+      ...>   true
+      ...> )
+      true
+    
+  """
+  @spec connected_node?(left_node :: Segment.t(), right_node :: Segment.t(), guess? :: boolean()) :: boolean()
+  def connected_node?(%Segment{} = left_node, %Segment{} = right_node, guess? \\ false) do
+    {left_time, right_time} =
+      case right_node.segment_type do
+        "Hotel" ->
+          {
+            NaiveDateTime.beginning_of_day(left_node.end_time),
+            NaiveDateTime.beginning_of_day(right_node.start_time),
+          }
 
-    left_2_node = current_path |> List.last()
-    right_2_node = tailing_root_path |> List.first()
+        _ ->
+          {
+            left_node.end_time,
+            right_node.start_time
+          }
+      end
 
-    # I could have used a recursive, pattern-matched call but I think that would just
-    # make it less understandable.
-    connected_node?(left_1_node, right_1_node) and connected_node?(left_2_node, right_2_node)
-  end
+    time_difference = NaiveDateTime.diff(right_time, left_time, :day)
+    time_compare = NaiveDateTime.compare(right_time, left_time)
 
-  @spec connected_node?(left_node :: Segment.t(), right_node :: Segment.t()) :: boolean()
-  defp connected_node?(%Segment{} = left_node, %Segment{} = right_node) do
-    case right_node.segment_type do
-      "Hotel" ->
-        left_node.end_location == right_node.start_location and
-          NaiveDateTime.beginning_of_day(left_node.end_time) ==
-            NaiveDateTime.beginning_of_day(right_node.start_time)
+    connected? =
+      left_node.end_location == right_node.start_location and
+        (time_compare == :gt or time_compare == :eq) and
+        time_difference <= if guess?, do: @guess_days, else: 1
 
-      _ ->
-        time_compare = NaiveDateTime.compare(left_node.end_time, right_node.start_time)
-
-        left_node.end_location == right_node.start_location and
-          (time_compare == :lt or time_compare == :eq) and
-          NaiveDateTime.diff(right_node.start_time, left_node.end_time, :hour) <= 24
-    end
-    |> tap(
-      &Logger.debug("""
-      Are nodes #{inspect(left_node, pretty: true)} and
-      #{inspect(right_node, pretty: true)} connected?: #{inspect(&1)}
-      """)
-    )
+    connected?
+    |> tap(&Logger.debug("#{inspect(left_node, pretty: true)} and #{inspect(right_node, pretty: true)} connected?: #{inspect(&1)}"))
   end
 end
