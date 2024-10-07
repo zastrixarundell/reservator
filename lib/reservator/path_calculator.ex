@@ -17,7 +17,7 @@ defmodule Reservator.PathCalculator do
 
   The output is:
 
-    {calculated_paths, skipped_segments}
+      {calculated_paths, skipped_segments}
       
   Calculated paths are the paths which are correctly found and connected. Skipped paths
   are paths which were not able to connect to any of the starting nodes, they are generally
@@ -136,7 +136,7 @@ defmodule Reservator.PathCalculator do
   @doc """
   Determine whether a node is connected. If `guess?` is set to false, the nodes will only be connected
   if there is a 24 hours differnce between them. If `guess?` is true, it will only be connected if there's
-  a week between them.
+  #{@guess_days} days between them.
 
   ## Examples
 
