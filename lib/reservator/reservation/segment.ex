@@ -74,6 +74,7 @@ defmodule Reservator.Reservation.Segment do
       reservations
       |> String.split("\n")
       |> Enum.map(&deserialize_segment!/1)
+      |> Enum.reject(&is_nil/1)
 
     {:ok, segments}
   rescue
