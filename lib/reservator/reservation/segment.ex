@@ -2,6 +2,7 @@ defmodule Reservator.Reservation.Segment do
   @moduledoc """
   Struct representing a segment of a reservation.
   """
+  require Logger
 
   defstruct [
     :segment_type,
@@ -35,144 +36,105 @@ defmodule Reservator.Reservation.Segment do
   @type end_location :: String.t()
 
   @doc """
-  Function which loads segment data in as a string or an array of strings. In case
-  the argument is an array, it will perform the singular string operation on each
-  of its elements.
-
-  Scans input string and generates a struct list for the given information.
+  Decodes the string (which is a list of segments) into decoded segments. It splits by `\\n` (newline character),
+  decodes and filters them.
 
   ## Examples
 
-      iex> Reservator.Reservation.Segment.deserialize_segments("Flight SVQ 2023-03-02 06:40 -> BCN 09:59")
-      {:ok,
-        [
-          %Reservator.Reservation.Segment{
-            segment_type: "Flight",
-            start_time: ~N[2023-03-02 06:40:00],
-            start_location: "SVQ",
-            end_time: ~N[2023-03-02 09:59:00],
-            end_location: "BCN"
-          }
-        ]
-      }
-
-      iex> Reservator.Reservation.Segment.deserialize_segments(
-      ...>   [
-      ...>     "Flight SVQ 2023-03-02 06:40 -> BCN 09:59" <> "\\n" <>
-      ...>     "Flight SVQ 2023-03-02 03:40 -> BCN 06:59"
-      ...>   ]
-      ...> )
-      {
-        :ok,
-        [
-          [
-            %Reservator.Reservation.Segment{
-              end_location: "BCN",
-              end_time: ~N[2023-03-02 09:59:00],
-              segment_type: "Flight",
-              start_location: "SVQ",
-              start_time: ~N[2023-03-02 06:40:00]
-            },
-            %Reservator.Reservation.Segment{
-              end_location: "BCN",
-              end_time: ~N[2023-03-02 06:59:00],
-              segment_type: "Flight",
-              start_location: "SVQ",
-              start_time: ~N[2023-03-02 03:40:00]
-            }
-          ]
-        ]
-      }
-
-      iex> Reservator.Reservation.Segment.deserialize_segments("Flight SVQ 2023-03-02 06:40 -> BCN 09:60")
-      {:error, :deserialization_failed}
-  """
-  @spec deserialize_segments(content :: String.t() | list(String.t())) ::
-          {:ok, list(Reservator.Reservation.Segment.t())} | {:error, :deserialization_failed}
-  def deserialize_segments(content) when is_list(content) do
-    deserialized_data =
-      content
-      |> Enum.map(&deserialize_segments/1)
-
-    any_broken? =
-      deserialized_data
-      |> Enum.any?(fn segment_chunk ->
-        case segment_chunk do
-          {:error, _} ->
-            true
-
-          _ ->
-            false
-        end
-      end)
-
-    if any_broken? do
-      {:error, :deserialization_failed}
-    else
-      {:ok, Enum.map(deserialized_data, &elem(&1, 1))}
-    end
-  end
-
-  def deserialize_segments(content) when is_binary(content) do
-    # That's a serious regex! But really is's a regex which does matching for a set amount of fields
-    # (even if they don't exist), so that it handles both travel and location segments.
-    #
-    # Here's the breakdown:
-    # 0) Segment type (ex. Flight), always defined
-    # 1) Start location (ex. SVQ), always defined
-    # 2) Start date (ex. 2023-01-05), always defined
-    # 3) Start time (ex. 06:30), not always present
-    # 4) End location (ex. BCN), not always present
-    # 5) End date (ex. 2023-01-10), not always present
-    # 6) End time (ex. 23:30), not always present
-
-    data =
-      Regex.scan(
-        ~r/(\w+) (\w{3}) (\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}) -> (\w{3}) ()(\d{2}:\d{2})|(\w+) (\w{3}) (\d{4}-\d{2}-\d{2})() -> ()(\d{4}-\d{2}-\d{2})()/m,
-        content
-      )
-      |> Enum.map(fn [_match | groups] ->
-        # It'll either match 7 or 14 elements
-        groups
-        |> Enum.take(-7)
-        |> Enum.map(&empty_string_conversion/1)
-      end)
-      |> Enum.map(fn match ->
-        start_time =
-          gen_start_date(Enum.at(match, 2), Enum.at(match, 3))
-          |> NaiveDateTime.from_iso8601!()
-
-        end_time =
-          gen_end_date(Enum.at(match, 2), Enum.at(match, 5), Enum.at(match, 6))
-          |> NaiveDateTime.from_iso8601!()
-
-        %__MODULE__{
-          segment_type: Enum.at(match, 0),
-          start_time: start_time,
-          start_location: match |> Enum.at(1) |> String.upcase(),
-          end_time: end_time,
-          end_location: (Enum.at(match, 4) || Enum.at(match, 1)) |> String.upcase()
+      iex> Reservator.Reservation.Segment.deserialize_segments!("SEGMENT: Flight BCN 2023-03-02 15:00 -> NYC 22:45\\nSEGMENT: Flight NYC 2023-03-06 08:00 -> BOS 09:25")
+      [
+        %Reservator.Reservation.Segment{
+          segment_type: "Flight",
+          start_time: ~N[2023-03-02 15:00:00],
+          start_location: "BCN",
+          end_time: ~N[2023-03-02 22:45:00],
+          end_location: "NYC"
+        },
+        %Reservator.Reservation.Segment{
+          segment_type: "Flight",
+          start_time: ~N[2023-03-06 08:00:00],
+          start_location: "NYC",
+          end_time: ~N[2023-03-06 09:25:00],
+          end_location: "BOS"
         }
-      end)
-
-    {:ok, data}
-  rescue
-    # Lazy way to do checking whether the information is correct.
-    # The only actual breaking point can be during the date conversion
-    # which yields an error block
-    ArgumentError ->
-      {:error, :deserialization_failed}
+      ]
+  """
+  @spec deserialize_segments!(reservations :: String.t()) :: list(Segment.t())
+  def deserialize_segments!(reservations) do
+    reservations
+    |> String.split("\n")
+    |> Enum.map(&deserialize_segment!/1)
+    |> Enum.reject(&is_nil/1)
   end
 
-  defp gen_start_date(start_date, nil), do: "#{start_date} 00:00:00"
-  defp gen_start_date(start_date, start_time), do: "#{start_date} #{start_time}:00"
+  @doc """
+  Decodes the segment from a string. It will return either the decoded segment or nil.
 
-  defp gen_end_date(start_date, nil, end_time), do: "#{start_date} #{end_time}:00"
-  defp gen_end_date(_start_date, end_date, _end_time), do: "#{end_date} 00:00:00"
+  ## Examples
 
-  defp empty_string_conversion(""), do: nil
-  defp empty_string_conversion(string), do: string
+      iex> Reservator.Reservation.Segment.deserialize_segment!("SEGMENT: Hotel BCN 2023-01-05 -> 2023-01-10")
+      %Reservator.Reservation.Segment{
+        segment_type: "Hotel",
+        start_time: ~N[2023-01-05 00:00:00],
+        start_location: "BCN",
+        end_time: ~N[2023-01-10 00:00:00],
+        end_location: "BCN"
+      }
+  """
+  @spec deserialize_segment!(segment :: binary()) :: Segment.t() | nil
+  def deserialize_segment!(<<"SEGMENT: Hotel ", location::binary-3, " ", start_date::binary-10, " -> ", end_date::binary-10>>) do
+    %__MODULE__{
+      segment_type: "Hotel",
+      start_time: gen_start_date(start_date, nil),
+      start_location: location,
+      end_time: gen_end_date(nil, end_date, nil),
+      end_location: location
+    }
+  rescue
+    error in ArgumentError ->
+      Logger.warning("Date failed with #{error.message}")
+      nil
+  end
 
+  def deserialize_segment!(<<"SEGMENT: Train ", location::binary-3, " ", start_date::binary-10, " ", start_time::binary-5, " -> ", end_location::binary-3, " ", end_time::binary-5>>) do
+    %__MODULE__{
+      segment_type: "Train",
+      start_time: gen_start_date(start_date, start_time),
+      start_location: location,
+      end_time: gen_end_date(start_date, nil, end_time),
+      end_location: end_location
+    }
+  rescue
+    error in ArgumentError ->
+      Logger.warning("Date failed with #{error.message}")
+      nil
+  end
+
+  def deserialize_segment!(<<"SEGMENT: Flight ", location::binary-3, " ", start_date::binary-10, " ", start_time::binary-5, " -> ", end_location::binary-3, " ", end_time::binary-5>>) do
+    %__MODULE__{
+      segment_type: "Flight",
+      start_time: gen_start_date(start_date, start_time),
+      start_location: location,
+      end_time: gen_end_date(start_date, nil, end_time),
+      end_location: end_location
+    }
+  rescue
+    error in ArgumentError ->
+      Logger.warning("Date failed with #{error.message}")
+      nil
+  end
+
+  def deserialize_segment!(_) do
+    nil
+  end
+
+  defp gen_start_date(start_date, nil), do: "#{start_date} 00:00:00" |> NaiveDateTime.from_iso8601!()
+  defp gen_start_date(start_date, start_time), do: "#{start_date} #{start_time}:00" |> NaiveDateTime.from_iso8601!()
+
+  defp gen_end_date(start_date, nil, end_time), do: "#{start_date} #{end_time}:00" |> NaiveDateTime.from_iso8601!()
+  defp gen_end_date(_start_date, end_date, _end_time), do: "#{end_date} 00:00:00" |> NaiveDateTime.from_iso8601!()
+
+  # Implementation for the encoding part.
   defimpl String.Chars, for: __MODULE__ do
     @spec to_string(segment :: Reservator.Reservation.Segment.t()) :: String.t()
     def to_string(%Reservator.Reservation.Segment{} = segment) do
