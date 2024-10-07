@@ -25,7 +25,9 @@ defmodule Reservator.PathCalculator do
   """
   @spec calculate_path(String.t(), list(Segment.t())) ::
           {calculated_paths :: list(list(Segment.t())), skipped_segments :: list(Segment.t())}
-  def calculate_path(starting_location, segments) when is_binary(starting_location) do
+  def calculate_path(starting_location, segments)
+      when is_binary(starting_location)
+      when is_list(segments) do
     {start_paths, travel_paths} =
       segments
       # needs to be called, otherwise data can be invalid
