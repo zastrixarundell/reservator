@@ -52,7 +52,7 @@ defmodule Reservator.Decoder do
           {:ok, binary(), list(Segment.t())}
           | {:error,
              :deserialization_failed | :file_not_found | :file_read_error | :no_start_location}
-  def decode_file(file_path) when is_bitstring(file_path) do
+  def decode_file(file_path) when is_binary(file_path) do
     with {:ok, binary} <- read_file(file_path),
          {:ok, start_location} <- start_location(binary),
          {:ok, segments} <- Segment.deserialize_segments(binary) do

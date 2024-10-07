@@ -117,17 +117,15 @@ defmodule Reservator.PathCalculator do
     # Loop until `{:halt, _}` is called.
     Stream.cycle([nil])
     |> Enum.reduce_while(starting_path, fn _, current_path ->
-      last_index = List.last(current_path)
-
+      last_element = List.last(current_path)
       current_elements = Storage.list_paths(storage_pid)
 
-      case Enum.find(current_elements, &connected_node?(last_index, &1, guess?)) do
+      case Enum.find(current_elements, &connected_node?(last_element, &1, guess?)) do
         nil ->
           {:halt, current_path}
 
         value ->
           Storage.remove_node(storage_pid, value)
-
           {:cont, current_path ++ [value]}
       end
     end)
