@@ -14,7 +14,7 @@ defmodule Reservator do
 
       mix reservator custom_input.txt
     
-  Where the input path can be either relative or absolute.  
+  Where the input path can be either relative or absolute.
   """
 
   alias Reservator.{Decoder, Encoder, PathCalculator}
