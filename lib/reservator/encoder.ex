@@ -77,7 +77,10 @@ defmodule Reservator.Encoder do
           String.t()
   def convert_to_string(starting_location, segments) do
     Enum.map_join(segments, "\n\n", fn segments ->
-      generate_end_destinations(starting_location, segments) <> "\n" <> convert_segments(segments)
+      end_destionns = generate_end_destinations(starting_location, segments)
+      converted_segments = convert_segments(segments)
+
+      "#{end_destionns}\n#{converted_segments}"
     end)
   end
 
@@ -94,7 +97,7 @@ defmodule Reservator.Encoder do
       segments
       |> Enum.filter(&is_travel_location?(&1, starting_location))
       |> Enum.map(fn node -> node.end_location end)
-      |> delete_consecutive_duplicates()
+      |> Enum.uniq()
       |> Enum.join(", ")
 
     "TRIP to #{joined_ending_locations}"
@@ -105,31 +108,5 @@ defmodule Reservator.Encoder do
        when is_binary(starting_location) do
     node.start_location != starting_location and
       node.end_location != starting_location
-  end
-
-  @spec delete_consecutive_duplicates(list(Segment.t())) :: list(Segment.t())
-  defp delete_consecutive_duplicates(list) do
-    Stream.cycle([nil])
-    |> Enum.reduce_while({list, 0}, &delete_consecutive_duplicates_logic(&1, &2))
-  end
-
-  @spec delete_consecutive_duplicates_logic(
-          any(),
-          {current_list :: list(Segment.t()), index :: integer()}
-        ) ::
-          {:cont, {list(Segment.t()), integer()}} | {:halt, list(Segment.t())}
-  defp delete_consecutive_duplicates_logic(_, {current_list, index}) do
-    if index >= length(current_list) - 1 do
-      {:halt, current_list}
-    else
-      current_element = Enum.at(current_list, index)
-      next_element = Enum.at(current_list, index + 1)
-
-      if current_element == next_element do
-        {:cont, {List.delete(current_list, index + 1), index}}
-      else
-        {:cont, {current_list, index + 1}}
-      end
-    end
   end
 end
