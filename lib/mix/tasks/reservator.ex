@@ -6,8 +6,7 @@ defmodule Mix.Tasks.Reservator do
   use Mix.Task
 
   @doc """
-  Start the reservator application. It no `--file` argument is defined,
-  `input.txt` will be implied.
+  Start the reservator application. If no file path is defined `input.txt` will be assumed.
   """
   @spec run(list(String.t())) :: :ok | no_return()
   def run(args) do
@@ -15,27 +14,33 @@ defmodule Mix.Tasks.Reservator do
 
     input_file = args |> List.first("input.txt")
 
-    with {:ok, starting_location, segments} <- Reservator.Decoder.decode_file(input_file),
-         {calculated_paths, []} <-
-           Reservator.PathCalculator.calculate_path(starting_location, segments),
-         final_result <- Reservator.Encoder.convert_to_string(starting_location, calculated_paths) do
-      IO.puts(final_result)
-    else
-      {:error, :file_not_found} ->
+    case Reservator.main(input_file) do
+      :ok ->
+        :ok
+
+      {:error, :enoent} ->
         IO.puts(:stderr, "File #{input_file} not found.")
         System.halt(1)
 
-      {:error, :file_read_error} ->
+      {:error, :eacces} ->
         IO.puts(:stderr, "Unable to read file #{input_file}. Insufficient permissions?")
         System.halt(2)
 
+      {:error, :enotdir} ->
+        IO.puts(:stderr, "Unable to read file #{input_file}. Is a directory.")
+        System.halt(3)
+
+      {:error, :enomem} ->
+        IO.puts(:stderr, "Unable to read file #{input_file}. File is too large.")
+        System.halt(4)
+
       {:error, :no_start_location} ->
         IO.puts(:stderr, "`BASED:` not defined!")
-        System.halt(3)
+        System.halt(5)
 
       {:error, :deserialization_failed} ->
         IO.puts(:stderr, "Failed to generally deserialize. Is it malformed?")
-        System.halt(4)
+        System.halt(6)
 
       {_, failed_segments} when is_list(failed_segments) ->
         translated_failed_segments =
@@ -48,7 +53,7 @@ defmodule Mix.Tasks.Reservator do
           "[#{translated_failed_segments}] are not connected, please check the files!"
         )
 
-        System.halt(5)
+        System.halt(7)
     end
   end
 end
