@@ -103,6 +103,8 @@ defmodule Reservator.PathCalculator do
       last_element = List.last(current_path)
       current_elements = Storage.list_paths(storage_pid)
 
+      Logger.debug("Starting connection search for #{inspect(last_element, pretty: true)}")
+
       case Enum.find(current_elements, &connected_node?(last_element, &1, guess?)) do
         nil ->
           {:halt, current_path}
@@ -201,7 +203,7 @@ defmodule Reservator.PathCalculator do
     connected?
     |> tap(
       &Logger.debug(
-        "#{inspect(left_node, pretty: true)} and #{inspect(right_node, pretty: true)} connected?: #{inspect(&1)}"
+        "connected?: #{inspect(&1)} for #{inspect(right_node, pretty: true)} "
       )
     )
   end
