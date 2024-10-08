@@ -106,9 +106,9 @@ defmodule Reservator.Reservation.Segment do
     %__MODULE__{
       segment_type: "Hotel",
       start_time: gen_start_date(start_date, nil),
-      start_location: location,
+      start_location: location |> String.upcase(),
       end_time: gen_end_date(nil, end_date, nil),
-      end_location: location
+      end_location: location |> String.upcase()
     }
   end
 
@@ -119,9 +119,9 @@ defmodule Reservator.Reservation.Segment do
     %__MODULE__{
       segment_type: "Train",
       start_time: gen_start_date(start_date, start_time),
-      start_location: location,
+      start_location: location |> String.upcase(),
       end_time: gen_end_date(start_date, nil, end_time),
-      end_location: end_location
+      end_location: end_location |> String.upcase()
     }
   end
 
@@ -132,9 +132,9 @@ defmodule Reservator.Reservation.Segment do
     %__MODULE__{
       segment_type: "Flight",
       start_time: gen_start_date(start_date, start_time),
-      start_location: location,
+      start_location: location |> String.upcase(),
       end_time: gen_end_date(start_date, nil, end_time),
-      end_location: end_location
+      end_location: end_location |> String.upcase()
     }
   end
 
