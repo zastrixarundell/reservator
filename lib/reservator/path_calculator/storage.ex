@@ -28,10 +28,10 @@ defmodule Reservator.PathCalculator.Storage do
   @doc """
   Remove first exactly matching node from node list.
   """
-  @spec remove_node(pid(), node_path :: list(Segment.t())) :: :ok
-  def remove_node(pid, node_path) do
+  @spec remove_node(pid(), node :: Segment.t()) :: :ok
+  def remove_node(pid, node) do
     Agent.update(pid, fn nodes ->
-      index = Enum.find_index(nodes, &Kernel.==(&1, node_path))
+      index = Enum.find_index(nodes, &Kernel.==(&1, node))
 
       case index do
         nil ->

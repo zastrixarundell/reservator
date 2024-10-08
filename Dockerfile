@@ -1,3 +1,5 @@
+# Example of mix release with burrito: https://github.com/zastrixarundell/nasa_btt/blob/main/Dockerfile
+
 FROM elixir:1.17.3
 
 WORKDIR /app
