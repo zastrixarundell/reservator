@@ -69,7 +69,7 @@ defmodule Reservator.Reservation.Segment do
       }
   """
   @spec deserialize_segments(reservations :: String.t()) ::
-          {:ok, list(Segment.t())} | {:error, :deserialization_failed}
+          {:ok, list(__MODULE__.t())} | {:error, :deserialization_failed}
   def deserialize_segments(reservations) do
     segments =
       reservations
@@ -98,7 +98,7 @@ defmodule Reservator.Reservation.Segment do
         end_location: "BCN"
       }
   """
-  @spec deserialize_segment!(segment :: binary()) :: Segment.t()
+  @spec deserialize_segment!(segment :: binary()) :: __MODULE__.t()
   def deserialize_segment!(
         <<"SEGMENT: Hotel ", location::binary-3, " ", start_date::binary-10, " -> ",
           end_date::binary-10>>
