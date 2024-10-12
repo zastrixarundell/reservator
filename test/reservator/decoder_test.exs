@@ -7,7 +7,7 @@ defmodule DecoderTest do
 
   alias Reservator.Decoder
 
-  doctest Decoder, except: [{:decode_file, 1}]
+  doctest Decoder, except: [{:read_file, 1}]
 
   # Setup process
 
@@ -42,18 +42,22 @@ defmodule DecoderTest do
 
   describe "when valid file" do
     test "file is deserialized", %{file_path: path} do
-      {:ok, start_location, content} = Decoder.decode_file(path)
+      with {:ok, content} <- Decoder.read_file(path) do
+        {:ok, start_location, content} = Decoder.decode_content(content)
 
-      assert start_location == "SVQ"
+        assert start_location == "SVQ"
 
-      assert length(content) == 6
+        assert length(content) == 9
+      end
     end
   end
 
   describe "when invalid file" do
     @tag type: :invalid
     test "file is not deserialized", %{file_path: path} do
-      assert {:error, :deserialization_failed} = Decoder.decode_file(path)
+      with {:ok, content} <- Decoder.read_file(path) do
+        assert {:error, :deserialization_failed} = Decoder.decode_content(content)
+      end
     end
   end
 end
